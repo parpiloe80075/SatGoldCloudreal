@@ -1,0 +1,16 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Log in | SatGold Cloud</title><meta name="description" content="Sign in to your SatGold Cloud portal."><link rel="canonical" href="https://satgoldcloud.name.ng/login">
+<link rel="stylesheet" href="/src/css/tokens.css"><script src="/config.js"></script></head><body><main>
+<section class="block"><div class="wrap"><h1>Log in</h1><form class="stack" id="f"><label>Email<input name="email" type="email" required autocomplete="username"></label><label>Password<input name="password" type="password" required autocomplete="current-password"></label><button class="btn">Log in</button><div id="out" role="alert"></div></form></div></section>
+</main><script type="module">import {mountLayout} from "/src/js/layout.js";mountLayout();
+import {supabase} from "/src/js/supabase.js";
+const out=document.getElementById("out");
+document.getElementById("f").addEventListener("submit",async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(e.target));
+if(!supabase){out.className="msg err";out.textContent="Supabase is not configured.";return;}
+const {error}=await supabase.auth.signInWithPassword(d);
+if(error){out.className="msg err";out.textContent="Email or password is incorrect.";return;}
+const {data:isAdmin}=await supabase.rpc("is_platform_admin");
+if(isAdmin){location.href="/src/portals/super-admin/index.html";return;}
+const {data:m}=await supabase.from("school_memberships").select("role").eq("status","active").limit(1).maybeSingle();
+const map={owner:"owner",administrator:"admin",teacher:"teacher",staff:"admin",student:"student",parent:"parent"};
+location.href="/src/portals/"+(map[m?.role]||"owner")+"/index.html";});</script></body></html>

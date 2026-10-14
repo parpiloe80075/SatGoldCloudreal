@@ -1,0 +1,6 @@
+-- Run manually in a development project after creating two schools and test users.
+-- Expectation: a user who is owner of school A sees 0 rows for school B.
+-- set local role authenticated; select set_config('request.jwt.claim.sub','<owner-A-uuid>',true);
+-- select count(*) from schools where id='<school-B-uuid>';  -- must be 0
+-- select count(*) from payment_transactions where school_id='<school-B-uuid>'; -- must be 0
+-- insert into school_memberships(school_id,user_id,role) values('<school-A>','<self>','owner'); -- must fail (no write policy)

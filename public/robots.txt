@@ -1,0 +1,3 @@
+User-agent: *
+Disallow: /src/portals/
+Sitemap: https://satgoldcloud.name.ng/sitemap.xml

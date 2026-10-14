@@ -1,0 +1,11 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Contact | SatGold Cloud</title><meta name="description" content="Contact SatGold Cloud support by email or phone."><link rel="canonical" href="https://satgoldcloud.name.ng/contact">
+<link rel="stylesheet" href="/src/css/tokens.css"><script src="/config.js"></script></head><body><main>
+<section class="block"><div class="wrap"><h1>Contact us</h1><p>Email: support.satgoldcloud@gmail.com<br>Phone: 09138836682<br>Phone: 07081495536</p><form class="stack" id="f"><label>Name<input name="name" required maxlength="120"></label><label>Email<input name="email" type="email" required></label><label>Message<textarea name="message" required minlength="10" maxlength="2000" rows="5"></textarea></label><input name="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px" aria-hidden="true"><button class="btn">Send message</button><div id="out" role="status"></div></form></div></section>
+</main><script type="module">import {mountLayout} from "/src/js/layout.js";mountLayout();
+import {supabase} from "/src/js/supabase.js";
+const out=document.getElementById("out");
+document.getElementById("f").addEventListener("submit",async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(e.target));
+if(d.website)return;if(!supabase){out.className="msg err";out.textContent="Contact form is not configured yet.";return;}
+const {error}=await supabase.from("contact_submissions").insert({name:d.name,email:d.email,message:d.message});
+out.className="msg "+(error?"err":"ok");out.textContent=error?"Your message could not be sent. Please email us directly.":"Thank you. We will reply by email.";if(!error)e.target.reset();});</script></body></html>

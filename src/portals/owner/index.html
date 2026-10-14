@@ -1,0 +1,33 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">
+<title>School owner | SatGold Cloud</title><link rel="stylesheet" href="/src/css/tokens.css"><script src="/config.js"></script>
+<style>.stat{font-size:2rem;font-weight:800;color:var(--navy)}ul.check{list-style:none;padding:0}ul.check li{padding:.4rem 0;border-bottom:1px solid var(--line)}.done{color:#1b7a3a}.todo{color:var(--mute)}</style></head><body><main>
+<section class="block"><div class="wrap"><h1 id="title">Your school</h1><div id="out" role="alert"></div>
+<div class="grid" id="stats"></div>
+<h2>Setup checklist</h2><ul class="check" id="list"></ul>
+<h2>Subscription</h2><div class="card" id="sub"></div>
+<h2>Payment history</h2><div class="card" id="pay"><p>No payments yet.</p></div>
+<p><button class="btn ghost" id="out-btn">Log out</button></p></div></section></main>
+<script type="module">
+import {mountLayout} from "/src/js/layout.js";import {supabase} from "/src/js/supabase.js";import {esc,naira,requireSession} from "/src/js/ui.js";mountLayout();
+const session=await requireSession();const out=document.getElementById("out");
+if(session){
+const {data:m}=await supabase.from("school_memberships").select("school_id,role").eq("user_id",session.user.id).eq("role","owner").eq("status","active").limit(1).maybeSingle();
+if(!m){location.href="/src/pages/register.html";}else{
+const sid=m.school_id,cnt=async t=>(await supabase.from(t).select("id",{count:"exact",head:true}).eq("school_id",sid)).count??0;
+const [{data:school},{data:sub},{data:pays},nC,nS,nP,nT]=await Promise.all([
+ supabase.from("schools").select("name,status,school_email").eq("id",sid).single(),
+ supabase.from("school_subscriptions").select("plan,status,trial_ends_at,current_period_ends_at").eq("school_id",sid).order("created_at",{ascending:false}).limit(1).maybeSingle(),
+ supabase.from("payment_transactions").select("provider_payment_id,amount_minor,status,created_at").eq("school_id",sid).order("created_at",{ascending:false}),
+ cnt("school_classes"),cnt("school_subjects"),cnt("academic_periods"),
+ supabase.from("school_memberships").select("id",{count:"exact",head:true}).eq("school_id",sid).eq("role","teacher").eq("status","active").then(r=>r.count??0)]);
+document.getElementById("title").textContent=school?.name||"Your school";
+document.getElementById("stats").innerHTML=[["Classes",nC],["Subjects",nS],["Terms",nP],["Teachers",nT]].map(([l,v])=>`<div class="card"><div class="stat">${v}</div>${l}</div>`).join("");
+const days=sub?.trial_ends_at?Math.max(0,Math.ceil((new Date(sub.trial_ends_at)-Date.now())/864e5)):null;
+const items=[["School profile",!!school],["Academic terms",nP>0],["Classes",nC>0],["Subjects",nS>0],["Teachers invited (coming soon)",nT>0],["Subscription paid",sub?.status==="active"]];
+document.getElementById("list").innerHTML=items.map(([l,d])=>`<li class="${d?"done":"todo"}">${d?"Done":"To do"}: ${esc(l)}</li>`).join("");
+document.getElementById("sub").innerHTML=sub?`<p>Plan: <strong>${esc(sub.plan)}</strong>. Status: <strong>${esc(sub.status)}</strong>.${days!==null&&sub.status==="trialing"?` ${days} days left in your trial.`:""}</p>${sub.status!=="active"?`<button class="btn" id="payb">Pay for Starter Plan</button>`:""}`:"<p>No subscription found.</p>";
+if(pays?.length)document.getElementById("pay").innerHTML=pays.map(p=>`<p>${esc(p.provider_payment_id)}: ${naira(p.amount_minor)} (${esc(p.status)}) on ${new Date(p.created_at).toLocaleDateString("en-NG")}</p>`).join("");
+document.getElementById("payb")?.addEventListener("click",async()=>{const {data,error}=await supabase.functions.invoke("paystack-initialize",{body:{school_id:sid,plan_code:"starter"}});
+ if(error||!data?.authorization_url){out.className="msg err";out.textContent="Payment could not be started.";return;}location.href=data.authorization_url;});
+document.getElementById("out-btn").onclick=async()=>{await supabase.auth.signOut();location.href="/";};}}
+</script></body></html>

@@ -1,0 +1,10 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pricing | SatGold Cloud</title><meta name="description" content="Per term pricing for schools, with a two month free trial for eligible new schools."><link rel="canonical" href="https://satgoldcloud.name.ng/pricing">
+<link rel="stylesheet" href="/src/css/tokens.css"><script src="/config.js"></script></head><body><main>
+<section class="block"><div class="wrap"><h1>Pricing</h1><p>Eligible new schools receive a two month free trial. Prices load from the platform database.</p><div class="grid" id="plans"></div></div></section>
+</main><script type="module">import {mountLayout} from "/src/js/layout.js";mountLayout();
+import {supabase} from "/src/js/supabase.js";
+const el=document.getElementById("plans");const naira=k=>"\u20a6"+(k/100).toLocaleString("en-NG");
+if(!supabase){el.innerHTML="<p class=\"msg err\">Add your Supabase URL and key in config.js to load plans.</p>";}else{
+const {data,error}=await supabase.from("subscription_plans").select("plan_code,name,price_minor,description").eq("is_active",true).eq("is_public",true).neq("plan_code","trial").order("price_minor",{nullsFirst:false});
+el.innerHTML=(error||!data.length)?"<p class=\"msg err\">Plans could not be loaded.</p>":data.map(p=>`<div class="card ${p.plan_code==="growth"?"featured":""}"><h3>${p.name}</h3><div class="price">${p.price_minor?naira(p.price_minor)+" <small>per term</small>":"Contact us"}</div><p>${p.description||""}</p><a class="btn" href="/src/pages/${p.price_minor?"register":"contact"}.html">${p.price_minor?"Start free trial":"Contact support"}</a></div>`).join("");}</script></body></html>

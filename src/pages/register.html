@@ -1,0 +1,40 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Register your school | SatGold Cloud</title><meta name="description" content="Register your school on SatGold Cloud and start a two month free trial."><link rel="canonical" href="https://satgoldcloud.name.ng/register">
+<link rel="stylesheet" href="/src/css/tokens.css"><script src="/config.js"></script>
+<style>.steps{display:flex;gap:.5rem;margin:1rem 0;padding:0;list-style:none}.steps li{flex:1;padding:.5rem;border-bottom:4px solid var(--line);font-size:.9rem;color:var(--mute)}.steps li.on{border-color:var(--gold);color:var(--navy);font-weight:700}.step{display:none}.step.on{display:block}.row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem}@media(max-width:600px){.row{grid-template-columns:1fr}}</style></head><body><main>
+<section class="block"><div class="wrap"><h1>Register your school</h1>
+<ol class="steps" id="steps"><li>School</li><li>Owner account</li><li>Academics</li><li>Review</li></ol>
+<form class="stack" id="w" novalidate>
+<div class="step on" data-s="0"><label>School name<input name="name" required maxlength="150"></label><label>Contact email<input name="email" type="email" required></label><label>Phone<input name="phone" type="tel"></label><label>Address<input name="address" required></label><label>State<input name="state" required></label><label>School type<select name="school_type"><option>Private</option><option>Public</option><option>Faith based</option><option>Other</option></select></label><fieldset><legend>Education levels</legend><label><input type="checkbox" name="lv" value="Nursery"> Nursery</label><label><input type="checkbox" name="lv" value="Primary"> Primary</label><label><input type="checkbox" name="lv" value="Secondary"> Secondary</label></fieldset></div>
+<div class="step" data-s="1"><label>Your full name<input name="full_name" autocomplete="name"></label><label>Your phone<input name="owner_phone" type="tel" autocomplete="tel"></label><label>Owner email<input name="owner_email" type="email" autocomplete="username"></label><label>Password (at least 10 characters)<input name="password" type="password" minlength="10" autocomplete="new-password"></label><p id="verify" class="msg ok" hidden>Check your inbox to verify your email, then log in. Your school details are saved on this device so you can finish setup.</p></div>
+<div class="step" data-s="2"><label>Academic session (for example 2026/2027)<input name="session"></label><div class="row"><label>Session starts<input type="date" name="start_date"></label><label>Session ends<input type="date" name="end_date"></label></div><label>Terms (one per line)<textarea name="terms" rows="3">First Term
+Second Term
+Third Term</textarea></label><label>Classes (one per line)<textarea name="classes" rows="5"></textarea></label><label>Subjects (one per line)<textarea name="subjects" rows="5"></textarea></label></div>
+<div class="step" data-s="3"><div id="review" class="card"></div><p>Eligible new schools receive a two month free trial on the Starter Plan. No payment is taken now.</p></div>
+<div id="out" role="alert"></div>
+<div><button type="button" class="btn ghost" id="back">Back</button> <button type="button" class="btn" id="next">Continue</button></div>
+</form></div></section></main>
+<script type="module">
+import {mountLayout} from "/src/js/layout.js";import {supabase} from "/src/js/supabase.js";import {esc} from "/src/js/ui.js";mountLayout();
+const f=document.getElementById("w"),out=document.getElementById("out"),KEY="sgc_draft";let step=0;
+const val=n=>f.elements[n].value.trim();const lines=n=>val(n).split("\n").map(x=>x.trim()).filter(Boolean);
+const levels=()=>[...f.querySelectorAll('input[name=lv]:checked')].map(i=>i.value);
+const err=m=>{out.className="msg err";out.textContent=m;return false;};
+function show(){document.querySelectorAll(".step").forEach(x=>x.classList.toggle("on",+x.dataset.s===step));[...document.getElementById("steps").children].forEach((li,i)=>li.classList.toggle("on",i===step));
+ document.getElementById("back").hidden=step===0;document.getElementById("next").textContent=step===3?"Create my school":"Continue";
+ if(step===3)document.getElementById("review").innerHTML=`<strong>${esc(val("name"))}</strong><br>${esc(val("email"))}<br>${esc(val("address"))}, ${esc(val("state"))}<br>Session ${esc(val("session"))}: ${lines("terms").length} terms, ${lines("classes").length} classes, ${lines("subjects").length} subjects<br>Owner: ${esc(val("full_name"))} (${esc(val("owner_email"))})`;}
+function valid(){out.className="";out.textContent="";
+ if(step===0&&(val("name").length<3||!val("email")||!f.elements.email.checkValidity()||!val("phone")||!val("address")||!val("state")||!levels().length))return err("Enter the school name, valid email, phone, address, state and at least one education level.");
+ if(step===1&&(!val("full_name")||!val("owner_phone")||!val("owner_email")||!f.elements.owner_email.checkValidity()||val("password").length<10))return err("Enter your name, phone, a valid email and a password of at least 10 characters.");
+ if(step===2&&(!val("session")||!lines("terms").length))return err("Enter the session and at least one term.");return true;}
+document.getElementById("back").onclick=()=>{step--;show();};
+document.getElementById("next").onclick=async()=>{ if(!valid())return; if(step<3){step++;show();return;}
+ if(!supabase)return err("Supabase is not configured in config.js.");
+ const registration={school_name:val("name"),school_email:val("email"),school_phone:val("phone"),address:val("address"),state:val("state"),country:"Nigeria",school_type:val("school_type"),education_levels:levels(),
+  academic:{session_name:val("session"),start_date:val("start_date"),end_date:val("end_date"),term_names:lines("terms"),classes:lines("classes"),subjects:lines("subjects")}};
+ const {error}=await supabase.auth.signUp({email:val("owner_email"),password:val("password"),options:{data:{full_name:val("full_name"),phone:val("owner_phone"),registration},emailRedirectTo:location.origin+"/src/pages/login.html"}});
+ f.elements.password.value="";
+ if(error)return err("Could not create the account. If you already registered, log in instead.");
+ f.innerHTML='<p class="msg ok">Check your inbox and verify your email. Your school workspace and two month trial are created when you confirm. Then <a href="/src/pages/login.html">log in</a>.</p>';};
+show();
+</script></body></html>
